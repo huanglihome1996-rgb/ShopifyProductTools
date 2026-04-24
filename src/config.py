@@ -20,6 +20,8 @@ class Settings(BaseSettings):
     # AI 配置
     openai_api_key: Optional[str] = None
     anthropic_api_key: Optional[str] = None
+    ai_api_key: Optional[str] = None  # 通用 AI API Key
+    ai_base_url: Optional[str] = None  # AI API Base URL (for proxies)
     ai_model: str = "gpt-4-turbo-preview"
 
     # Shopify 配置
