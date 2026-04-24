@@ -5,6 +5,7 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
+from sqlalchemy.orm import selectinload
 from src.database import get_db
 from src.models import Product, Variant
 from src.schemas import ProductCreate, ProductResponse, PaginatedResponse, MessageResponse
@@ -45,6 +46,7 @@ async def list_products(
     # 分页查询
     offset = (page - 1) * page_size
     query = query.offset(offset).limit(page_size).order_by(Product.created_at.desc())
+    query = query.options(selectinload(Product.variants))
     
     result = await db.execute(query)
     products = result.scalars().all()
@@ -63,7 +65,9 @@ async def get_product(
     db: AsyncSession = Depends(get_db)
 ):
     """获取单个产品详情"""
-    result = await db.execute(select(Product).where(Product.id == product_id))
+    result = await db.execute(
+        select(Product).where(Product.id == product_id).options(selectinload(Product.variants))
+    )
     product = result.scalar_one_or_none()
     if not product:
         raise HTTPException(status_code=404, detail="产品不存在")
@@ -105,7 +109,11 @@ async def create_product(
     
     await db.commit()
     await db.refresh(product)
-    return product
+    # 重新查询以加载 variants 关系
+    result = await db.execute(
+        select(Product).where(Product.id == product.id).options(selectinload(Product.variants))
+    )
+    return result.scalar_one()
 
 
 @router.delete("/{product_id}", response_model=MessageResponse)
@@ -132,7 +140,9 @@ async def get_product_by_sku(
 ):
     """通过 SKU 查询产品"""
     result = await db.execute(
-        select(Product).where(Product.sku == sku, Product.store_id == store_id)
+        select(Product)
+        .where(Product.sku == sku, Product.store_id == store_id)
+        .options(selectinload(Product.variants))
     )
     product = result.scalar_one_or_none()
     if not product:

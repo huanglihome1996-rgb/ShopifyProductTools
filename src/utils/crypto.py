@@ -21,10 +21,14 @@ def _get_cipher() -> Fernet:
 def encrypt_token(token: str) -> str:
     """加密 token"""
     cipher = _get_cipher()
-    return cipher.encrypt(token.encode()).decode()
+    encrypted = cipher.encrypt(token.encode()).decode()
+    return f"enc:{encrypted}"
 
 
 def decrypt_token(encrypted_token: str) -> str:
     """解密 token"""
+    # 如果不是加密格式，返回原值
+    if not encrypted_token.startswith("enc:"):
+        return encrypted_token
     cipher = _get_cipher()
-    return cipher.decrypt(encrypted_token.encode()).decode()
+    return cipher.decrypt(encrypted_token[4:].encode()).decode()
