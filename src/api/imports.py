@@ -4,10 +4,11 @@
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
 from src.database import get_db
 from src.models import ImportHistory, Product
 from src.schemas import ImportExcelRequest, ImportUrlRequest, ImportHistoryResponse, MessageResponse
+from src.schemas import PaginatedResponse
 from src.services.excel_import import process_excel_import
 from src.services.web_scraper import scrape_products
 
@@ -103,21 +104,39 @@ async def import_from_urls(
     )
 
 
-@router.get("/history", response_model=List[ImportHistoryResponse])
+@router.get("/history", response_model=PaginatedResponse)
 async def get_import_history(
     store_id: int = None,
+    page: int = 1,
+    page_size: int = 20,
     limit: int = 20,
     db: AsyncSession = Depends(get_db)
 ):
     """获取导入历史"""
+    # 获取总数
+    count_query = select(func.count(ImportHistory.id))
+    if store_id:
+        count_query = count_query.where(ImportHistory.store_id == store_id)
+    total_result = await db.execute(count_query)
+    total = total_result.scalar()
+
+    # 分页查询
     query = select(ImportHistory).order_by(ImportHistory.started_at.desc())
     
     if store_id:
         query = query.where(ImportHistory.store_id == store_id)
     
-    query = query.limit(limit)
+    offset = (page - 1) * page_size
+    query = query.offset(offset).limit(page_size)
     result = await db.execute(query)
-    return result.scalars().all()
+    items = result.scalars().all()
+
+    return PaginatedResponse(
+        total=total,
+        page=page,
+        page_size=page_size,
+        items=[ImportHistoryResponse.model_validate(item) for item in items]
+    )
 
 
 @router.get("/history/{batch_id}", response_model=ImportHistoryResponse)

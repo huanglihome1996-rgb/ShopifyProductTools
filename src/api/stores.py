@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from src.database import get_db
 from src.models import Store
-from src.schemas import StoreCreate, StoreUpdate, StoreResponse, MessageResponse
+from src.schemas import StoreCreate, StoreUpdate, StoreResponse, StoreTestResponse, MessageResponse
 from src.utils.crypto import encrypt_token, decrypt_token
 
 router = APIRouter()
@@ -97,3 +97,32 @@ async def delete_store(
     await db.delete(store)
     await db.commit()
     return MessageResponse(success=True, message="店铺已删除")
+
+
+@router.post("/{store_id}/test", response_model=StoreTestResponse)
+async def test_store_connection(
+    store_id: int,
+    db: AsyncSession = Depends(get_db)
+):
+    """测试 Shopify 店铺连接"""
+    result = await db.execute(select(Store).where(Store.id == store_id))
+    store = result.scalar_one_or_none()
+    if not store:
+        raise HTTPException(status_code=404, detail="店铺不存在")
+
+    try:
+        from src.services.shopify_client import ShopifyClient
+        client = ShopifyClient(store)
+        # 尝试获取店铺信息来验证连接
+        result = await client._request("GET", "shop.json")
+        shop_info = result.get("shop", {})
+        return StoreTestResponse(
+            success=True,
+            message="连接成功",
+            shop_name=shop_info.get("name")
+        )
+    except Exception as e:
+        return StoreTestResponse(
+            success=False,
+            message=f"连接失败: {str(e)}"
+        )

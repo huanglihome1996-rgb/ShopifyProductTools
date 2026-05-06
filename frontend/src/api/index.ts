@@ -32,6 +32,7 @@ export const productApi = {
   list: (params?: any) => api.get('/products/', { params }),
   get: (id: number) => api.get(`/products/${id}`),
   create: (data: any) => api.post('/products/', data),
+  update: (id: number, data: any) => api.put(`/products/${id}`, data),
   delete: (id: number) => api.delete(`/products/${id}`),
   getBySku: (sku: string, storeId: number) => 
     api.get(`/products/sku/${sku}`, { params: { store_id: storeId } }),
@@ -50,9 +51,9 @@ export const importApi = {
       headers: { 'Content-Type': 'multipart/form-data' },
     })
   },
-  scrapeUrls: (storeId: number, urls: string[]) => 
-    api.post('/imports/scrape', { store_id: storeId, urls }),
-  getStatus: (batchId: string) => api.get(`/imports/status/${batchId}`),
+  scrapeUrls: (storeId: number, urls: string[]) =>
+    api.post('/imports/urls', { store_id: storeId, urls, platform: 'website' }),
+  getHistoryDetail: (batchId: string) => api.get(`/imports/history/${batchId}`),
   listHistory: (params?: any) => api.get('/imports/history', { params }),
 }
 

@@ -4,6 +4,7 @@ Pydantic Schema 定义
 from datetime import datetime
 from typing import Optional, List
 from pydantic import BaseModel, Field, HttpUrl
+from pydantic import ConfigDict
 
 
 # ============ Store Schemas ============
@@ -29,8 +30,7 @@ class StoreResponse(StoreBase):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # ============ Variant Schemas ============
@@ -57,8 +57,7 @@ class VariantResponse(VariantBase):
     product_id: int
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # ============ Product Schemas ============
@@ -103,8 +102,7 @@ class ProductResponse(ProductBase):
     updated_at: datetime
     variants: List[VariantResponse] = []
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # ============ Import Schemas ============
@@ -151,8 +149,25 @@ class ImportHistoryResponse(BaseModel):
     started_at: datetime
     finished_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ProductUpdate(BaseModel):
+    """产品更新请求"""
+    original_title: Optional[str] = None
+    original_description: Optional[str] = None
+    original_price: Optional[float] = None
+    original_images: Optional[List[str]] = None
+    source_url: Optional[str] = None
+    tags: Optional[List[str]] = None
+    category: Optional[str] = None
+
+
+class StoreTestResponse(BaseModel):
+    """店铺连接测试响应"""
+    success: bool
+    message: str
+    shop_name: Optional[str] = None
 
 
 # ============ Common Schemas ============

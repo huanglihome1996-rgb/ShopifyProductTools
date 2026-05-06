@@ -146,12 +146,12 @@ const importExcel = async () => {
 
   try {
     const result = await importApi.uploadExcel(excelForm.store_id, selectedFile.value)
-    ElMessage.success(`导入完成，成功 ${result.success_count} 条`)
+    ElMessage.success(result.message || `导入任务已创建`)
     importProgress.percentage = 100
     importProgress.status = 'success'
-    importProgress.success = result.success_count
-    importProgress.skip = result.skip_count
-    importProgress.fail = result.fail_count
+    importProgress.success = 0
+    importProgress.skip = 0
+    importProgress.fail = 0
   } catch (e: any) {
     ElMessage.error(e.message)
     importProgress.status = 'exception'
@@ -178,11 +178,11 @@ const startScrape = async () => {
 
   try {
     const result = await importApi.scrapeUrls(scrapeForm.store_id, urls)
-    ElMessage.success(`爬取完成，成功 ${result.success_count} 条`)
+    ElMessage.success(result.message || `爬取任务已创建`)
     importProgress.percentage = 100
     importProgress.status = 'success'
-    importProgress.success = result.success_count
-    importProgress.fail = result.fail_count
+    importProgress.success = 0
+    importProgress.fail = 0
   } catch (e: any) {
     ElMessage.error(e.message)
     importProgress.status = 'exception'

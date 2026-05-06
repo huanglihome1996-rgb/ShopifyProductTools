@@ -2,6 +2,7 @@
 ShopifyProductTools 配置管理
 """
 from pydantic_settings import BaseSettings
+from pydantic import ConfigDict
 from typing import Optional
 from functools import lru_cache
 
@@ -40,9 +41,7 @@ class Settings(BaseSettings):
     secret_key: str = "change-this-in-production"
     token_encryption_key: Optional[str] = None
 
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
+    model_config = ConfigDict(env_file=".env", env_file_encoding="utf-8")
 
 
 @lru_cache()

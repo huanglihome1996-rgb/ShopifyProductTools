@@ -2,13 +2,14 @@
 产品管理 API
 """
 from typing import List, Optional
+from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
 from src.database import get_db
 from src.models import Product, Variant
-from src.schemas import ProductCreate, ProductResponse, PaginatedResponse, MessageResponse
+from src.schemas import ProductCreate, ProductUpdate, ProductResponse, PaginatedResponse, MessageResponse
 
 router = APIRouter()
 
@@ -130,6 +131,43 @@ async def delete_product(
     await db.delete(product)
     await db.commit()
     return MessageResponse(success=True, message="产品已删除")
+
+
+@router.put("/{product_id}", response_model=ProductResponse)
+async def update_product(
+    product_id: int,
+    product_data: ProductUpdate,
+    db: AsyncSession = Depends(get_db)
+):
+    """更新产品信息"""
+    result = await db.execute(
+        select(Product).where(Product.id == product_id).options(selectinload(Product.variants))
+    )
+    product = result.scalar_one_or_none()
+    if not product:
+        raise HTTPException(status_code=404, detail="产品不存在")
+
+    import json
+    update_data = product_data.model_dump(exclude_unset=True)
+
+    # 处理 JSON 字段
+    if "original_images" in update_data and update_data["original_images"] is not None:
+        update_data["original_images"] = json.dumps(update_data["original_images"])
+    if "tags" in update_data and update_data["tags"] is not None:
+        update_data["tags"] = json.dumps(update_data["tags"])
+
+    for key, value in update_data.items():
+        setattr(product, key, value)
+
+    product.updated_at = datetime.utcnow()
+    await db.commit()
+    await db.refresh(product)
+
+    # 重新查询以加载 variants 关系
+    result = await db.execute(
+        select(Product).where(Product.id == product.id).options(selectinload(Product.variants))
+    )
+    return result.scalar_one()
 
 
 @router.get("/sku/{sku}", response_model=ProductResponse)
